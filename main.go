@@ -7,7 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func main() {
@@ -49,14 +52,15 @@ func getUpdates(BotURL string, offset int) ([]types.Update, error) {
 func respond(botURL string, update types.Update) error {
 	botMessage := new(types.BotMessage)
 	botMessage.ChatId = update.Message.Chat.ChatId
+	data := strings.Split(strings.Replace(update.Message.Text, "\r\n", "\n", -1), "\n")
 	if update.Message.Text == "/help" {
 		HelpRespond(botMessage)
 	} else if update.Message.Text == "/author" {
 		AuthorRespond(botMessage)
 	} else if update.Message.Text == "/info" {
 		InfoRespond(botMessage)
-	} else {
-		ErrorRespond(botMessage)
+	} else if data[0] == "/sort" {
+		SortRespond(data[1:], botMessage)
 	}
 	buf, err := json.Marshal(botMessage)
 	if err != nil {
@@ -73,11 +77,8 @@ func HelpRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "Hello, this bot can sort your doings and remind about them\n" +
 		"You can use this following commands\n" +
 		"/info - gets information about sorting methods\n" + //implemented
-		"/sort - sorts your doings, example:\n" +
-		"	/sort\n" +
-		"	Make smth 01.12.2023 17:00\n" +
-		"	Make smth2 02.12.2023 17:00\n" +
-		"	...\n" +
+		"/sort - sorts your doings, use this command like following format:\n" +
+		"	Name Date Time Importance(from 1 to 4, from lower to higher)" +
 		"/remind - reminds you about your doing, use this command like sort command\n" +
 		"/author - gets information about authors\n" + //implemented
 		"/delete - deletes doing from remind list,use this command like sort command\n" +
@@ -95,4 +96,38 @@ func AuthorRespond(botMessage *types.BotMessage) {
 
 func ErrorRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "unrecognized command, use /help to get list of commands"
+}
+
+func SortRespond(data []string, botMessage *types.BotMessage) {
+	var Doings []types.Doing
+	for _, doing := range data {
+		SplitedData := strings.Split(doing, " ")
+		if len(SplitedData) != 4 {
+			botMessage.Text = "invalid type of doings"
+			return
+		}
+		var Do types.Doing
+		Do.Name = SplitedData[0]
+		DateTimeStr := SplitedData[1] + " " + SplitedData[2]
+		layout := "2.01.2006 15:04"
+		dateTime, err := time.Parse(layout, DateTimeStr)
+		if err != nil {
+			botMessage.Text = "invalid type of doing"
+			return
+		}
+		Do.Data = dateTime
+		Do.Importance, _ = strconv.Atoi(SplitedData[3])
+		Doings = append(Doings, Do)
+	}
+	sort.SliceStable(Doings, func(i, j int) bool {
+		if Doings[i].Data != Doings[j].Data {
+			return Doings[i].Data.Before(Doings[j].Data)
+		}
+		return Doings[i].Importance > Doings[j].Importance
+	})
+	var answer string
+	for _, item := range Doings {
+		answer += item.Name + " " + item.Data.Format("2.01.2006 15:04") + " " + strconv.Itoa(item.Importance) + "\n"
+	}
+	botMessage.Text = answer
 }
