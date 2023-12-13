@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/RakhimovAns/Time_Manager/types"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,12 +15,17 @@ import (
 	"time"
 )
 
+var pool *pgxpool.Pool
+
 func main() {
 	BotToken := "6791006120:AAFzk656CBCPbNlWVolFZl1cUwp4ej7A-Tc"
 	//https://api.telegram.org/bot<token>/METHOD_NAME
 	BotAPI := "https://api.telegram.org/bot"
 	BotURL := BotAPI + BotToken
 	offset := 0
+	dsn := "postgresql://postgres:postgres@localhost:5432/manager"
+	ConnectToDB(dsn)
+	defer pool.Close()
 	for {
 		Updates, err := getUpdates(BotURL, offset)
 		if err != nil {
@@ -30,7 +37,10 @@ func main() {
 		}
 	}
 }
-
+func ConnectToDB(dsn string) {
+	connectCtx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	pool, _ = pgxpool.Connect(connectCtx, dsn)
+}
 func getUpdates(BotURL string, offset int) ([]types.Update, error) {
 	resp, err := http.Get(BotURL + "/getUpdates" + "?offset=" + strconv.Itoa(offset))
 	if err != nil {
@@ -59,8 +69,12 @@ func respond(botURL string, update types.Update) error {
 		AuthorRespond(botMessage)
 	} else if update.Message.Text == "/info" {
 		InfoRespond(botMessage)
-	} else if data[0] == "/sort" {
+	} else if data[0] == "/sort" && len(data) > 1 {
 		SortRespond(data[1:], botMessage)
+	} else if data[0] == "/remind" && len(data) > 1 {
+		RemindRespond(data[1:], botMessage)
+	} else {
+		ErrorRespond(botMessage)
 	}
 	buf, err := json.Marshal(botMessage)
 	if err != nil {
@@ -130,4 +144,46 @@ func SortRespond(data []string, botMessage *types.BotMessage) {
 		answer += item.Name + " " + item.Data.Format("2.01.2006 15:04") + " " + strconv.Itoa(item.Importance) + "\n"
 	}
 	botMessage.Text = answer
+}
+func RemindRespond(data []string, botMessage *types.BotMessage) {
+	var Doings []types.Doing
+	for _, doing := range data {
+		SplitedData := strings.Split(doing, " ")
+		if len(SplitedData) != 4 {
+			botMessage.Text = "invalid type of doings"
+			return
+		}
+		var Do types.Doing
+		Do.Name = SplitedData[0]
+		DateTimeStr := SplitedData[1] + " " + SplitedData[2]
+		layout := "2.01.2006 15:04"
+		dateTime, err := time.Parse(layout, DateTimeStr)
+		if err != nil {
+			botMessage.Text = "invalid type of doing"
+			return
+		}
+		Do.Data = dateTime
+		Do.Importance, _ = strconv.Atoi(SplitedData[3])
+		Doings = append(Doings, Do)
+	}
+	sort.SliceStable(Doings, func(i, j int) bool {
+		if Doings[i].Data != Doings[j].Data {
+			return Doings[i].Data.Before(Doings[j].Data)
+		}
+		return Doings[i].Importance > Doings[j].Importance
+	})
+	ctx := context.Background()
+	for _, doing := range Doings {
+		_, err := pool.Exec(ctx, `
+				insert into doings(chat_id, name, importance, time) values ($1,$2,$3,$4)
+`, botMessage.ChatId, doing.Name, doing.Importance, doing.Data)
+		if err != nil {
+			log.Fatal("error with adding to db:", err)
+		}
+	}
+	botMessage.Text = "I will remind about it"
+}
+
+func Remind() {
+
 }
