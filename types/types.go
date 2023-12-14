@@ -29,3 +29,10 @@ type Doing struct {
 	Data       time.Time
 	Importance int
 }
+type DoWithID struct {
+	ID         int
+	ChatId     int
+	Name       string
+	Data       time.Time
+	Importance int
+}

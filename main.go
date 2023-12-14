@@ -27,6 +27,7 @@ func main() {
 	ConnectToDB(dsn)
 	defer pool.Close()
 	for {
+		Remind(BotURL)
 		Updates, err := getUpdates(BotURL, offset)
 		if err != nil {
 			log.Println("Smth went wrong", err.Error())
@@ -69,6 +70,8 @@ func respond(botURL string, update types.Update) error {
 		AuthorRespond(botMessage)
 	} else if update.Message.Text == "/info" {
 		InfoRespond(botMessage)
+	} else if update.Message.Text == "/list" {
+		ListRespond(botMessage)
 	} else if data[0] == "/sort" && len(data) > 1 {
 		SortRespond(data[1:], botMessage)
 	} else if data[0] == "/remind" && len(data) > 1 {
@@ -91,12 +94,12 @@ func HelpRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "Hello, this bot can sort your doings and remind about them\n" +
 		"You can use this following commands\n" +
 		"/info - gets information about sorting methods\n" + //implemented
-		"/sort - sorts your doings, use this command like following format:\n" +
+		"/sort - sorts your doings, use this command like following format:\n" + //implemented
 		"	Name Date Time Importance(from 1 to 4, from lower to higher)" +
-		"/remind - reminds you about your doing, use this command like sort command\n" +
-		"/author - gets information about authors\n" + //implemented
+		"/remind - reminds you about your doing, use this command like sort command\n" + //implemented
+		"/author - gets information about authors\n" + //implemented //implemented
 		"/delete - deletes doing from remind list,use this command like sort command\n" +
-		"/list - gets all doing from remind list" // correct english grammar
+		"/list - gets all doing from remind list" // correct english grammar //implemented
 	//"/change" //Add it later
 }
 
@@ -172,9 +175,8 @@ func RemindRespond(data []string, botMessage *types.BotMessage) {
 		}
 		return Doings[i].Importance > Doings[j].Importance
 	})
-	ctx := context.Background()
 	for _, doing := range Doings {
-		_, err := pool.Exec(ctx, `
+		_, err := pool.Exec(context.Background(), `
 				insert into doings(chat_id, name, importance, time) values ($1,$2,$3,$4)
 `, botMessage.ChatId, doing.Name, doing.Importance, doing.Data)
 		if err != nil {
@@ -184,6 +186,121 @@ func RemindRespond(data []string, botMessage *types.BotMessage) {
 	botMessage.Text = "I will remind about it"
 }
 
-func Remind() {
+func GetDoings() []types.DoWithID {
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
 
+	var doings []types.DoWithID
+
+	for rows.Next() {
+		var ID int
+		var ChatID int
+		var name string
+		var timestamp time.Time
+		var importance int
+		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		doing := types.DoWithID{
+			ID:         ID,
+			ChatId:     ChatID,
+			Name:       name,
+			Data:       timestamp,
+			Importance: importance,
+		}
+		doings = append(doings, doing)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return doings
+}
+
+func Remind(botURL string) {
+	Doings := GetDoings()
+	for _, doing := range Doings {
+		var BotMessage types.BotMessage
+		BotMessage.ChatId = doing.ChatId
+		if doing.Data.Sub(time.Now().Add(3*time.Hour)).Minutes() == 5 {
+			BotMessage.Text = "You need to start " + doing.Name + " after 5 minutes"
+			buf, err := json.Marshal(BotMessage)
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else if doing.Data.Sub(time.Now().Add(3*time.Hour)) <= 0 {
+			BotMessage.Text = "You need to start " + doing.Name
+			Delete(doing)
+			buf, err := json.Marshal(BotMessage)
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+func Delete(doing types.DoWithID) {
+	_, err := pool.Exec(context.Background(), `
+		DELETE FROM doings where id=$1
+`, doing.ID)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ListRespond(botMessage *types.BotMessage) {
+	Doings := GetDoingsByID(botMessage.ChatId)
+	var answer string
+	for _, item := range Doings {
+		answer += item.Name + " " + item.Data.Format("2.01.2006 15:04") + " " + strconv.Itoa(item.Importance) + "\n"
+	}
+	botMessage.Text = answer
+}
+
+func GetDoingsByID(ID int) []types.DoWithID {
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where chat_id=$1", ID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var doings []types.DoWithID
+
+	for rows.Next() {
+		var ID int
+		var ChatID int
+		var name string
+		var timestamp time.Time
+		var importance int
+		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		doing := types.DoWithID{
+			ID:         ID,
+			ChatId:     ChatID,
+			Name:       name,
+			Data:       timestamp,
+			Importance: importance,
+		}
+		doings = append(doings, doing)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return doings
 }
