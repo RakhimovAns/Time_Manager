@@ -64,7 +64,9 @@ func respond(botURL string, update types.Update) error {
 	botMessage := new(types.BotMessage)
 	botMessage.ChatId = update.Message.Chat.ChatId
 	data := strings.Split(strings.Replace(update.Message.Text, "\r\n", "\n", -1), "\n")
-	if update.Message.Text == "/help" {
+	if update.Message.Text == "/start" {
+		StartRespond(botMessage)
+	} else if update.Message.Text == "/help" {
 		HelpRespond(botMessage)
 	} else if update.Message.Text == "/author" {
 		AuthorRespond(botMessage)
@@ -76,6 +78,8 @@ func respond(botURL string, update types.Update) error {
 		SortRespond(data[1:], botMessage)
 	} else if data[0] == "/remind" && len(data) > 1 {
 		RemindRespond(data[1:], botMessage)
+	} else if data[0] == "/delete" && len(data) > 1 {
+		DeleteRespond(data[1:], botMessage)
 	} else {
 		ErrorRespond(botMessage)
 	}
@@ -102,7 +106,9 @@ func HelpRespond(botMessage *types.BotMessage) {
 		"/list - gets all doing from remind list" // correct english grammar //implemented
 	//"/change" //Add it later
 }
-
+func StartRespond(botMessage *types.BotMessage) {
+	botMessage.Text = "Hello dear user! This bot sorts your doings, to get more info use command /help"
+}
 func InfoRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "This bot sorts your doing by Eisenhower's Matrix.\n" + "Eisenhower's Matrix is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance and urgency using a special table"
 }
@@ -263,6 +269,12 @@ func Delete(doing types.DoWithID) {
 func ListRespond(botMessage *types.BotMessage) {
 	Doings := GetDoingsByID(botMessage.ChatId)
 	var answer string
+	sort.SliceStable(Doings, func(i, j int) bool {
+		if Doings[i].Data != Doings[j].Data {
+			return Doings[i].Data.Before(Doings[j].Data)
+		}
+		return Doings[i].Importance > Doings[j].Importance
+	})
 	for _, item := range Doings {
 		answer += item.Name + " " + item.Data.Format("2.01.2006 15:04") + " " + strconv.Itoa(item.Importance) + "\n"
 	}
@@ -303,4 +315,35 @@ func GetDoingsByID(ID int) []types.DoWithID {
 		log.Fatal(err)
 	}
 	return doings
+}
+func DeleteRespond(data []string, botMessage *types.BotMessage) {
+	var Doings []types.Doing
+	for _, doing := range data {
+		SplitedData := strings.Split(doing, " ")
+		if len(SplitedData) != 4 {
+			botMessage.Text = "invalid type of doings"
+			return
+		}
+		var Do types.Doing
+		Do.Name = SplitedData[0]
+		DateTimeStr := SplitedData[1] + " " + SplitedData[2]
+		layout := "2.01.2006 15:04"
+		dateTime, err := time.Parse(layout, DateTimeStr)
+		if err != nil {
+			botMessage.Text = "invalid type of doing"
+			return
+		}
+		Do.Data = dateTime
+		Do.Importance, _ = strconv.Atoi(SplitedData[3])
+		Doings = append(Doings, Do)
+	}
+	for _, doing := range Doings {
+		_, err := pool.Exec(context.Background(), `
+		DELETE FROM doings where name=$1 and importance=$2 and time=$3
+`, doing.Name, doing.Importance, doing.Data)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	botMessage.Text = "was deleted successfully"
 }
