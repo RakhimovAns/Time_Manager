@@ -82,12 +82,13 @@ func HelpRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "Hello, this bot can sort your doings and remind about them\n" +
 		"You can use this following commands\n" +
 		"/info - gets information about sorting methods\n" + //implemented
-		"/sort - sorts your doings, use this command like following format:\n" + //implemented
-		"	Name Date Time Importance(from 1 to 4, from lower to higher)" +
-		"/remind - reminds you about your doing, use this command like sort command\n" + //implemented
+		"/sort - sorts your doings, use this command in following format:\n" + //implemented
+		"	Name Date Time Importance(from 1 to 4, from lower to higher)\n" +
+		"	Example: Complete_Task 29.02.2023 22:00 1\n" +
+		"/remind - reminds you about your doing, use this command like  a sort command\n" + //implemented
 		"/author - gets information about authors\n" + //implemented //implemented
-		"/delete - deletes doing from remind list,use this command like sort command\n" +
-		"/list - gets all doing from remind list" // correct english grammar //implemented
+		"/delete - deletes doings from remind list,use this command like a sort command\n" +
+		"/list - gets all doings from remind list" // correct english grammar //implemented
 	//"/change" //Add it later
 }
 func StartRespond(botMessage *types.BotMessage) {
@@ -173,7 +174,7 @@ func RemindRespond(data []string, botMessage *types.BotMessage) {
 			log.Fatal("error with adding to db:", err)
 		}
 	}
-	botMessage.Text = "I will remind about it"
+	botMessage.Text = "I will remind about that"
 }
 
 func GetDoings() []types.DoWithID {
@@ -219,19 +220,8 @@ func Remind(botURL string) {
 
 		var BotMessage types.BotMessage
 		BotMessage.ChatId = doing.ChatId
-
-		if doing.Data.Sub(time.Now().Add(3*time.Hour)).Minutes() == 5 {
-			BotMessage.Text = "You need to start " + doing.Name + " after 5 minutes"
-			buf, err := json.Marshal(BotMessage)
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else if doing.Data.Sub(time.Now().Add(3*time.Hour)) <= 0 {
-			BotMessage.Text = "You need to start " + doing.Name
+		if doing.Data.Sub(time.Now().Add(3*time.Hour)) <= 0 {
+			BotMessage.Text = "You need to start '" + doing.Name + "'"
 			Delete(doing)
 			buf, err := json.Marshal(BotMessage)
 			if err != nil {
@@ -336,5 +326,5 @@ func DeleteRespond(data []string, botMessage *types.BotMessage) {
 			log.Fatal(err)
 		}
 	}
-	botMessage.Text = "was deleted successfully"
+	botMessage.Text = "Was deleted successfully"
 }
