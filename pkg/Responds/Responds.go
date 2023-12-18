@@ -188,7 +188,7 @@ func GetDoings() []types.DoWithID {
 
 	for rows.Next() {
 		var ID int
-		var ChatID int
+		var ChatID int64
 		var name string
 		var timestamp time.Time
 		var importance int
@@ -262,7 +262,7 @@ func ListRespond(botMessage *types.BotMessage) {
 	botMessage.Text = answer
 }
 
-func GetDoingsByID(ID int) []types.DoWithID {
+func GetDoingsByID(ID int64) []types.DoWithID {
 	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where chat_id=$1", ID)
 	if err != nil {
 		log.Fatal(err)
@@ -273,7 +273,7 @@ func GetDoingsByID(ID int) []types.DoWithID {
 
 	for rows.Next() {
 		var ID int
-		var ChatID int
+		var ChatID int64
 		var name string
 		var timestamp time.Time
 		var importance int
