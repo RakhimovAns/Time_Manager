@@ -8,7 +8,7 @@ type Update struct {
 }
 
 type Chat struct {
-	ChatId int `json:"id"`
+	ChatId int64 `json:"id"`
 }
 
 type Message struct {
@@ -20,7 +20,7 @@ type RestResponse struct {
 	Result []Update `json:"result"`
 }
 type BotMessage struct {
-	ChatId int    `json:"chat_id"`
+	ChatId int64  `json:"chat_id"`
 	Text   string `json:"text"`
 }
 
@@ -31,8 +31,9 @@ type Doing struct {
 }
 type DoWithID struct {
 	ID         int
-	ChatId     int
+	ChatId     int64
 	Name       string
 	Data       time.Time
 	Importance int
+	Status     bool
 }

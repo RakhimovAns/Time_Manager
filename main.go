@@ -18,7 +18,9 @@ func main() {
 	pool := Responds.GetPool()
 	defer pool.Close()
 	for {
+		Responds.StatusRespond(BotURL)
 		Responds.Remind(BotURL)
+		Responds.Want(BotURL)
 		Updates, err := Responds.GetUpdates(BotURL, offset)
 		if err != nil {
 			log.Println("Something went wrong", err.Error())
