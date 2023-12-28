@@ -1,7 +1,3 @@
-CREATE TABLE doings(
-                       id bigserial primary key ,
-                       chat_id bigint not null,
-                       name text not null ,
-                       importance integer not null ,
-                       time timestamp not null
-)
+ALTER TABLE doings
+ADD  COLUMN status boolean not null default false,
+ADD COLUMN done_time timestamp  ;

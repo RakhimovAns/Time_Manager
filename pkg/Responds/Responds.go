@@ -64,6 +64,8 @@ func Respond(botURL string, update types.Update) error {
 		RemindRespond(data[1:], botMessage)
 	} else if data[0] == "/delete" && len(data) > 1 {
 		DeleteRespond(data[1:], botMessage)
+	} else if data[0] == "/done" && len(data) > 1 {
+		DoneRespond(data[1:], botMessage)
 	} else {
 		ErrorRespond(botMessage)
 	}
@@ -88,7 +90,8 @@ func HelpRespond(botMessage *types.BotMessage) {
 		"/remind - reminds you about your doing, use this command like  a sort command\n" + //implemented
 		"/author - gets information about authors\n" + //implemented //implemented
 		"/delete - deletes doings from remind list,use this command like a sort command\n" +
-		"/list - gets all doings from remind list" // correct english grammar //implemented
+		"/list - gets all doings from remind list\n" +
+		"/done - you can use this command when you finished some doings, use this command like a sort command" // correct english grammar //implemented
 	//"/change" //Add it later
 }
 func StartRespond(botMessage *types.BotMessage) {
@@ -97,7 +100,60 @@ func StartRespond(botMessage *types.BotMessage) {
 func InfoRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "This bot sorts your doing by Eisenhower's Matrix.\n" + "Eisenhower's Matrix is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance and urgency using a special table"
 }
+func DoneRespond(data []string, botMessage *types.BotMessage) {
+	var Doings []types.Doing
+	for _, doing := range data {
+		SplitedData := strings.Split(doing, " ")
+		if len(SplitedData) != 4 {
+			botMessage.Text = "invalid type of doings"
+			return
+		}
+		var Do types.Doing
+		Do.Name = SplitedData[0]
+		DateTimeStr := SplitedData[1] + " " + SplitedData[2]
+		layout := "2.01.2006 15:04"
+		dateTime, err := time.Parse(layout, DateTimeStr)
+		if err != nil {
+			botMessage.Text = "invalid type of doing"
+			return
+		}
+		Do.Data = dateTime
+		Do.Importance, _ = strconv.Atoi(SplitedData[3])
+		Doings = append(Doings, Do)
+	}
+	for _, doing := range Doings {
+		_, err := pool.Exec(context.Background(), `
+	update doings set status=true  and doings.done_time=$4 where name=$1 and importance=$2 and time=$3
+`, doing.Name, doing.Importance, doing.Data, time.Now().Add(3*time.Hour))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	botMessage.Text = "Command finished successfully"
+}
 
+func StatusRespond(botURL string) {
+	Doings := GetDoingsWithStatus()
+	set := make(map[int64]time.Time)
+	for _, doing := range Doings {
+		set[doing.ChatId] = doing.Data
+	}
+	for chat_id, timer := range set {
+		if time.Now().Add(3*time.Hour).Sub(timer).Hours() == 1 {
+			var botMessage types.BotMessage
+			botMessage.ChatId = chat_id
+			botMessage.Text = "Have you done anything from your doing list?"
+			buf, err := json.Marshal(botMessage)
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
 func AuthorRespond(botMessage *types.BotMessage) {
 	botMessage.Text = "Ansar Rakhmimov. support: https://t.me/Rakhimov_Ans"
 }
@@ -178,7 +234,43 @@ func RemindRespond(data []string, botMessage *types.BotMessage) {
 }
 
 func GetDoings() []types.DoWithID {
-	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings")
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where status=false")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var doings []types.DoWithID
+
+	for rows.Next() {
+		var ID int
+		var ChatID int64
+		var name string
+		var timestamp time.Time
+		var importance int
+
+		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		doing := types.DoWithID{
+			ID:         ID,
+			ChatId:     ChatID,
+			Name:       name,
+			Data:       timestamp,
+			Importance: importance,
+		}
+		doings = append(doings, doing)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return doings
+}
+func GetDoingsWithStatus() []types.DoWithID {
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where status=false")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -217,12 +309,10 @@ func GetDoings() []types.DoWithID {
 func Remind(botURL string) {
 	Doings := GetDoings()
 	for _, doing := range Doings {
-
 		var BotMessage types.BotMessage
 		BotMessage.ChatId = doing.ChatId
 		if doing.Data.Sub(time.Now().Add(3*time.Hour)) <= 0 {
 			BotMessage.Text = "You need to start '" + doing.Name + "'"
-			Delete(doing)
 			buf, err := json.Marshal(BotMessage)
 			if err != nil {
 				log.Fatal(err)
@@ -263,7 +353,7 @@ func ListRespond(botMessage *types.BotMessage) {
 }
 
 func GetDoingsByID(ID int64) []types.DoWithID {
-	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where chat_id=$1", ID)
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where chat_id=$1 and status=false", ID)
 	if err != nil {
 		log.Fatal(err)
 	}
