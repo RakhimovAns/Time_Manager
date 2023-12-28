@@ -35,4 +35,5 @@ type DoWithID struct {
 	Name       string
 	Data       time.Time
 	Importance int
+	Status     bool
 }

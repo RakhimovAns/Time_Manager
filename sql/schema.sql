@@ -1,3 +1,3 @@
 ALTER TABLE doings
-ADD  COLUMN status boolean not null default false,
-ADD COLUMN done_time timestamp  ;
+DROP COLUMN status,
+ADD  COLUMN status boolean  default false;

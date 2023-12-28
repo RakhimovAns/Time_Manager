@@ -123,8 +123,14 @@ func DoneRespond(data []string, botMessage *types.BotMessage) {
 	}
 	for _, doing := range Doings {
 		_, err := pool.Exec(context.Background(), `
-	update doings set status=true  and doings.done_time=$4 where name=$1 and importance=$2 and time=$3
-`, doing.Name, doing.Importance, doing.Data, time.Now().Add(3*time.Hour))
+	update doings set status=true where name=$1 and importance=$2 and time=$3
+`, doing.Name, doing.Importance, doing.Data)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = pool.Exec(context.Background(), `
+	update doings set done_time=$4 where name=$1 and importance=$2 and time=$3
+`, doing.Name, doing.Importance, doing.Data, time.Now())
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -145,10 +151,12 @@ func StatusRespond(botURL string) {
 			botMessage.Text = "Have you done anything from your doing list?"
 			buf, err := json.Marshal(botMessage)
 			if err != nil {
+				log.Println("Hello there")
 				log.Fatal(err)
 			}
 			_, err = http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 			if err != nil {
+				log.Println("Hello ther")
 				log.Fatal(err)
 			}
 		}
@@ -234,7 +242,7 @@ func RemindRespond(data []string, botMessage *types.BotMessage) {
 }
 
 func GetDoings() []types.DoWithID {
-	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings where status=false")
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance,status FROM doings where status=false")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -248,8 +256,8 @@ func GetDoings() []types.DoWithID {
 		var name string
 		var timestamp time.Time
 		var importance int
-
-		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance)
+		var status bool
+		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance, &status)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -260,6 +268,7 @@ func GetDoings() []types.DoWithID {
 			Name:       name,
 			Data:       timestamp,
 			Importance: importance,
+			Status:     status,
 		}
 		doings = append(doings, doing)
 	}
@@ -305,23 +314,70 @@ func GetDoingsWithStatus() []types.DoWithID {
 	}
 	return doings
 }
+func GetAllDoings() []types.DoWithID {
+	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
 
+	var doings []types.DoWithID
+
+	for rows.Next() {
+		var ID int
+		var ChatID int64
+		var name string
+		var timestamp time.Time
+		var importance int
+		var status bool
+		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance, status)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		doing := types.DoWithID{
+			ID:         ID,
+			ChatId:     ChatID,
+			Name:       name,
+			Data:       timestamp,
+			Importance: importance,
+			Status:     status,
+		}
+		doings = append(doings, doing)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return doings
+}
 func Remind(botURL string) {
 	Doings := GetDoings()
 	for _, doing := range Doings {
 		var BotMessage types.BotMessage
 		BotMessage.ChatId = doing.ChatId
 		if doing.Data.Sub(time.Now().Add(3*time.Hour)) <= 0 {
+			SetStatus(doing)
 			BotMessage.Text = "You need to start '" + doing.Name + "'"
 			buf, err := json.Marshal(BotMessage)
 			if err != nil {
+				log.Println("Hello the")
 				log.Fatal(err)
 			}
 			_, err = http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 			if err != nil {
+				log.Println("Hello here")
 				log.Fatal(err)
 			}
 		}
+	}
+}
+func SetStatus(doing types.DoWithID) {
+	_, err := pool.Exec(context.Background(), `
+		update doings set status=true where id=$1
+`, doing.ID)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 func Delete(doing types.DoWithID) {
@@ -417,4 +473,34 @@ func DeleteRespond(data []string, botMessage *types.BotMessage) {
 		}
 	}
 	botMessage.Text = "Was deleted successfully"
+}
+
+func Want(botURL string) {
+	if !(time.Now().Hour() == 22 && time.Now().Minute() == 0) {
+		return
+	}
+	Doings := GetAllDoings()
+	set := make(map[int64]int)
+	for _, doing := range Doings {
+		if doing.Status == true {
+			set[doing.ChatId]++
+			Delete(doing)
+		}
+	}
+	for chat_id, count := range set {
+		botMessage := types.BotMessage{ChatId: chat_id}
+		if count == 0 {
+			botMessage.Text = "You have done nothing:( Maybe you want to get good result"
+		} else if count >= 1 && count <= 5 {
+			botMessage.Text = "Not Bad, today you have done " + strconv.Itoa(count) + " doings, try better"
+		} else {
+			botMessage.Text = "Great, today you have done " + strconv.Itoa(count) + " doings, Keep it"
+		}
+		buf, _ := json.Marshal(botMessage)
+		_, err := http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+		if err != nil {
+			log.Println("Hi")
+			log.Fatal(err)
+		}
+	}
 }
