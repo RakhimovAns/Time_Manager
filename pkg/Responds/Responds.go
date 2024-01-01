@@ -315,7 +315,7 @@ func GetDoingsWithStatus() []types.DoWithID {
 	return doings
 }
 func GetAllDoings() []types.DoWithID {
-	rows, err := pool.Query(context.Background(), "SELECT id,doings.chat_id,name, time, importance FROM doings")
+	rows, err := pool.Query(context.Background(), "SELECT id,chat_id,name, time, importance,status FROM doings")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func GetAllDoings() []types.DoWithID {
 		var timestamp time.Time
 		var importance int
 		var status bool
-		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance, status)
+		err = rows.Scan(&ID, &ChatID, &name, &timestamp, &importance, &status)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -476,7 +476,7 @@ func DeleteRespond(data []string, botMessage *types.BotMessage) {
 }
 
 func Want(botURL string) {
-	if !(time.Now().Hour() == 22 && time.Now().Minute() == 0) {
+	if !(time.Now().Hour() == 22 && time.Now().Minute() == 00) {
 		return
 	}
 	Doings := GetAllDoings()
