@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/RakhimovAns/Time_Manager/types"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"io/ioutil"
@@ -102,7 +103,7 @@ func InfoRespond(botMessage *types.BotMessage) {
 func DoneRespond(data []string, botMessage *types.BotMessage) {
 	var Doings []types.Doing
 	for _, doing := range data {
-		SplitedData := strings.Split(doing, " ")
+		SplitedData := strings.Fields(doing)
 		if len(SplitedData) != 4 {
 			botMessage.Text = "invalid type of doings"
 			return
@@ -172,7 +173,8 @@ func ErrorRespond(botMessage *types.BotMessage) {
 func SortRespond(data []string, botMessage *types.BotMessage) {
 	var Doings []types.Doing
 	for _, doing := range data {
-		SplitedData := strings.Split(doing, " ")
+		SplitedData := strings.Fields(doing)
+		fmt.Println(SplitedData)
 		if len(SplitedData) != 4 {
 			botMessage.Text = "invalid type of doings"
 			return
@@ -205,7 +207,7 @@ func SortRespond(data []string, botMessage *types.BotMessage) {
 func RemindRespond(data []string, botMessage *types.BotMessage) {
 	var Doings []types.Doing
 	for _, doing := range data {
-		SplitedData := strings.Split(doing, " ")
+		SplitedData := strings.Fields(doing)
 		if len(SplitedData) != 4 {
 			botMessage.Text = "invalid type of doings"
 			return
@@ -445,7 +447,7 @@ func GetDoingsByID(ID int64) []types.DoWithID {
 func DeleteRespond(data []string, botMessage *types.BotMessage) {
 	var Doings []types.Doing
 	for _, doing := range data {
-		SplitedData := strings.Split(doing, " ")
+		SplitedData := strings.Fields(doing)
 		if len(SplitedData) != 4 {
 			botMessage.Text = "invalid type of doings"
 			return
