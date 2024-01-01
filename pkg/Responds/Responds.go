@@ -22,8 +22,7 @@ func GetPool() *pgxpool.Pool {
 }
 
 func ConnectToDB(dsn string) {
-	connectCtx, _ := context.WithTimeout(context.Background(), time.Second*5)
-	pool, _ = pgxpool.Connect(connectCtx, dsn)
+	pool, _ = pgxpool.Connect(context.Background(), dsn)
 }
 
 func GetUpdates(BotURL string, offset int) ([]types.Update, error) {
