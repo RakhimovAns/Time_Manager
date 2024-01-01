@@ -1,4 +1,4 @@
-package types
+package model
 
 import "time"
 
@@ -19,17 +19,13 @@ type Message struct {
 type RestResponse struct {
 	Result []Update `json:"result"`
 }
+
 type BotMessage struct {
 	ChatId int64  `json:"chat_id"`
 	Text   string `json:"text"`
 }
 
 type Doing struct {
-	Name       string
-	Data       time.Time
-	Importance int
-}
-type DoWithID struct {
 	ID         int
 	ChatId     int64
 	Name       string

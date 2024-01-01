@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/RakhimovAns/Time_Manager/pkg/Responds"
+	"github.com/RakhimovAns/Time_Manager/pkg/postgresql"
 	"log"
 )
 
@@ -14,19 +15,19 @@ const (
 
 func main() {
 	offset := 0
-	Responds.ConnectToDB(DSN)
-	pool := Responds.GetPool()
+	postgresql.ConnectToDB(DSN)
+	pool := postgresql.GetPool()
 	defer pool.Close()
 	for {
-		Responds.StatusRespond(BotURL)
-		Responds.Remind(BotURL)
-		Responds.Want(BotURL)
-		Updates, err := Responds.GetUpdates(BotURL, offset)
+		respond.StatusRespond(BotURL)
+		respond.Remind(BotURL)
+		respond.Want(BotURL)
+		Updates, err := respond.GetUpdates(BotURL, offset)
 		if err != nil {
 			log.Println("Something went wrong", err.Error())
 		}
 		for _, update := range Updates {
-			err = Responds.Respond(BotURL, update)
+			err = respond.Respond(BotURL, update)
 			offset = update.UpdateId + 1
 		}
 	}
