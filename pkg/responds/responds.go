@@ -2,12 +2,10 @@ package respond
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/RakhimovAns/Time_Manager/model"
-	parser "github.com/RakhimovAns/Time_Manager/pkg/Parser"
+	"github.com/RakhimovAns/Time_Manager/pkg/parser"
 	"github.com/RakhimovAns/Time_Manager/pkg/postgresql"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,8 +14,6 @@ import (
 	"strings"
 	"time"
 )
-
-var pool *pgxpool.Pool
 
 func GetUpdates(BotURL string, offset int) ([]model.Update, error) {
 	resp, err := http.Get(BotURL + "/getUpdates" + "?offset=" + strconv.Itoa(offset))
@@ -140,7 +136,7 @@ func StatusRespond(botURL string) {
 	}
 }
 func AuthorRespond(botMessage *model.BotMessage) {
-	botMessage.Text = "Ansar Rakhmimov. support: https://t.me/Rakhimov_Ans"
+	botMessage.Text = "Ansar Rakhmimov. support: @Rakhimov_Ans"
 }
 
 func ErrorRespond(botMessage *model.BotMessage) {
@@ -229,11 +225,9 @@ func DeleteRespond(data []string, botMessage *model.BotMessage) {
 		return
 	}
 	for _, doing := range Doings {
-		_, err := pool.Exec(context.Background(), `
-		DELETE FROM doings where name=$1 and importance=$2 and time=$3
-`, doing.Name, doing.Importance, doing.Data)
+		err := postgresql.Delete(doing)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("problem to delete")
 		}
 	}
 	botMessage.Text = "Was deleted successfully"

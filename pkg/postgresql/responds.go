@@ -93,19 +93,20 @@ func GetDoingsByID(ID int64) []model.Doing {
 
 func SetStatus(doing model.Doing) {
 	_, err := pool.Exec(context.Background(), `
-		update doings set status=true where id=$1
-`, doing.ID)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-func Delete(doing model.Doing) {
-	_, err := pool.Exec(context.Background(), `
-		DELETE FROM doings where name=$1 and time=$2 and importance=$3
+		update doings set status=true where name=$1 and time=$2 and importance=$3
 `, doing.Name, doing.Data, doing.Importance)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+func Delete(doing model.Doing) error {
+	_, err := pool.Exec(context.Background(), `
+		DELETE FROM doings where name=$1 and time=$2 and importance=$3
+`, doing.Name, doing.Data, doing.Importance)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetAllDoings() []model.Doing {

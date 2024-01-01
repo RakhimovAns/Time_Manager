@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/RakhimovAns/Time_Manager/pkg/Responds"
 	"github.com/RakhimovAns/Time_Manager/pkg/postgresql"
+	"github.com/RakhimovAns/Time_Manager/pkg/responds"
 	"log"
 )
 
