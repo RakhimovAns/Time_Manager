@@ -476,7 +476,7 @@ func DeleteRespond(data []string, botMessage *types.BotMessage) {
 }
 
 func Want(botURL string) {
-	if !(time.Now().Hour() == 22 && time.Now().Minute() == 00) {
+	if !(time.Now().Hour() == 21 && time.Now().Minute() == 07) {
 		return
 	}
 	Doings := GetAllDoings()
@@ -487,7 +487,13 @@ func Want(botURL string) {
 			Delete(doing)
 		}
 	}
+	type user struct {
+		chat_id int64
+		count   int
+	}
+	users := []user{}
 	for chat_id, count := range set {
+		users = append(users, user{chat_id: chat_id, count: count})
 		botMessage := types.BotMessage{ChatId: chat_id}
 		if count == 0 {
 			botMessage.Text = "You have done nothing:( Maybe you want to get good result"
@@ -497,6 +503,18 @@ func Want(botURL string) {
 			botMessage.Text = "Great, today you have done " + strconv.Itoa(count) + " doings, Keep it"
 		}
 		buf, _ := json.Marshal(botMessage)
+		_, err := http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+		if err != nil {
+			log.Println("Hi")
+			log.Fatal(err)
+		}
+	}
+	sort.SliceStable(users, func(i, j int) bool {
+		return users[i].count < users[j].count
+	})
+	for _, use := range users {
+		percent := use.count * 100 / len(users)
+		buf, _ := json.Marshal(types.BotMessage{ChatId: use.chat_id, Text: "Today you are better than " + strconv.Itoa(percent) + "% of users."})
 		_, err := http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 		if err != nil {
 			log.Println("Hi")
