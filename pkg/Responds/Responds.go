@@ -476,7 +476,7 @@ func DeleteRespond(data []string, botMessage *types.BotMessage) {
 }
 
 func Want(botURL string) {
-	if !(time.Now().Hour() == 21 && time.Now().Minute() == 07) {
+	if !(time.Now().Hour() == 22 && time.Now().Minute() == 0) {
 		return
 	}
 	Doings := GetAllDoings()
