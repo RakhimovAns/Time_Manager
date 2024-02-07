@@ -84,15 +84,15 @@ func HelpRespond(botMessage *model.BotMessage) {
 
 	botMessage.Text = "Hello, this bot can sort your doings and remind about them\n" +
 		"You can use this following commands\n" +
-		"/info - gets information about sorting methods\n" + //implemented
-		"/sort - sorts your doings, use this command in following format:\n" + //implemented
+		"/info - gets information about sorting methods\n" +
+		"/sort - sorts your doings, use this command in following format:\n" +
 		"	Name Date Time Importance(from 1 to 4, from lower to higher)\n" +
 		"	Example: Complete_Task 29.02.2023 22:00 1\n" +
-		"/remind - reminds you about your doing, use this command like  a sort command\n" + //implemented
-		"/author - gets information about authors\n" + //implemented //implemented
+		"/remind - reminds you about your doing, use this command like  a sort command\n" +
+		"/author - gets information about authors\n" +
 		"/delete - deletes doings from remind list,use this command like a sort command\n" +
 		"/list - gets all doings from remind list\n" +
-		"/done - you can use this command when you finished some doings, use this command like a sort command" // correct english grammar //implemented
+		"/done - you can use this command when you finished some doings, use this command like a sort command"
 }
 func StartRespond(botMessage *model.BotMessage) {
 
@@ -100,7 +100,7 @@ func StartRespond(botMessage *model.BotMessage) {
 }
 func InfoRespond(botMessage *model.BotMessage) {
 
-	botMessage.Text = "This bot sorts your doing by Eisenhower's Matrix.\n" + "Eisenhower's Matrix is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance and urgency using a special table"
+	botMessage.Text = "This bot sorts your doing by ABCDE method.\n" + "ABCDE method is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance  using a special table"
 }
 func DoneRespond(data []string, botMessage *model.BotMessage) {
 	Doings, err := parser.Pars(data, botMessage)
@@ -234,7 +234,7 @@ func DeleteRespond(data []string, botMessage *model.BotMessage) {
 }
 
 func Want(botURL string) {
-	if !(time.Now().Hour() == 0 && time.Now().Minute() == 0) {
+	if !(time.Now().Hour() == 23 && time.Now().Minute() == 14) {
 		return
 	}
 	Doings := postgresql.GetAllDoings()
@@ -272,7 +272,7 @@ func Want(botURL string) {
 	})
 	for _, use := range users {
 		percent := use.count * 100 / len(users)
-		buf, _ := json.Marshal(model.BotMessage{ChatId: use.chat_id, Text: "Today you are better than " + strconv.Itoa(percent) + "% of users."})
+		buf, _ := json.Marshal(model.BotMessage{ChatId: use.chat_id, Text: "Today you are better than " + strconv.Itoa(min(100, percent)) + "% of users."})
 		_, err := http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 		if err != nil {
 			log.Println("Hi")
