@@ -3,6 +3,7 @@ package respond
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/RakhimovAns/Time_Manager/model"
 	"github.com/RakhimovAns/Time_Manager/pkg/parser"
 	"github.com/RakhimovAns/Time_Manager/pkg/postgresql"
@@ -63,6 +64,8 @@ func Respond(botURL string, update model.Update) error {
 		DeleteRespond(data[1:], botMessage)
 	} else if data[0] == "/done" && len(data) > 1 {
 		DoneRespond(data[1:], botMessage)
+	} else if data[0] == "/lang" && len(data) > 1 {
+		SetLanguage(data[0:], botMessage)
 	} else {
 		ErrorRespond(botMessage)
 	}
@@ -79,7 +82,16 @@ func Respond(botURL string, update model.Update) error {
 
 	return nil
 }
-
+func SetLanguage(data []string, botMessage *model.BotMessage) {
+	language := data[1]
+	fmt.Println(language)
+	if language != "English" && language != "Russian" {
+		botMessage.Text = "invalid language"
+		return
+	}
+	postgresql.SetLanguage(botMessage.ChatId, language)
+	botMessage.Text = "Was set successfully"
+}
 func HelpRespond(botMessage *model.BotMessage) {
 
 	botMessage.Text = "Hello, this bot can sort your doings and remind about them\n" +
@@ -87,7 +99,7 @@ func HelpRespond(botMessage *model.BotMessage) {
 		"/info - gets information about sorting methods\n" +
 		"/sort - sorts your doings, use this command in following format:\n" +
 		"	Name Date Time Importance(from 1 to 4, from lower to higher)\n" +
-		"	Example: Complete_Task 29.02.2023 22:00 1\n" +
+		"	Example: Task 8.02.2024 13:50 1\n" +
 		"/remind - reminds you about your doing, use this command like  a sort command\n" +
 		"/author - gets information about authors\n" +
 		"/delete - deletes doings from remind list,use this command like a sort command\n" +
@@ -95,11 +107,9 @@ func HelpRespond(botMessage *model.BotMessage) {
 		"/done - you can use this command when you finished some doings, use this command like a sort command"
 }
 func StartRespond(botMessage *model.BotMessage) {
-
 	botMessage.Text = "Hello dear user! This bot sorts your doings, to get more info use command /help"
 }
 func InfoRespond(botMessage *model.BotMessage) {
-
 	botMessage.Text = "This bot sorts your doing by ABCDE method.\n" + "ABCDE method is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance  using a special table"
 }
 func DoneRespond(data []string, botMessage *model.BotMessage) {
