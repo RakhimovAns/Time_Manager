@@ -33,3 +33,9 @@ type Doing struct {
 	Importance int
 	Status     bool
 }
+
+//var Russian map[string]string
+//
+//func SetVocabulary() {
+//
+//}

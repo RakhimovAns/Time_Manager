@@ -16,6 +16,7 @@ func GetPool() *pgxpool.Pool {
 
 func ConnectToDB(dsn string) {
 	pool, _ = pgxpool.Connect(context.Background(), dsn)
+
 }
 
 func GetDoingsWithStatus() []model.Doing {
@@ -90,7 +91,15 @@ func GetDoingsByID(ID int64) []model.Doing {
 	}
 	return doings
 }
-
+func SetLanguage(ID int64, language string) {
+	_, err := pool.Exec(context.Background(), `
+	 insert into languages(chat_id, language) values ($1,$2)
+`, ID, language)
+	if err != nil {
+		log.Println("Error to set right language")
+		log.Fatal(err)
+	}
+}
 func SetStatus(doing model.Doing) {
 	_, err := pool.Exec(context.Background(), `
 		update doings set status=true where name=$1 and time=$2 and importance=$3
