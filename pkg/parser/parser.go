@@ -3,12 +3,13 @@ package parser
 import (
 	"errors"
 	"github.com/RakhimovAns/Time_Manager/model"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func Pars(data []string, botMessage *model.BotMessage) ([]model.Doing, error) {
+func Parse(data []string, botMessage *tgbotapi.MessageConfig) ([]model.Doing, error) {
 
 	var Doings []model.Doing
 
