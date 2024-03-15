@@ -26,17 +26,7 @@ func SetLanguage(data []string, botMessage *model.BotMessage) {
 	botMessage.Text = "Was set successfully"
 }
 func HelpRespond(config *tgbotapi.MessageConfig) {
-	config.Text = "Hello, this bot can sort your doings and remind about them\n" +
-		"You can use this following commands\n" +
-		"/info - gets information about sorting methods\n" +
-		"/sort - sorts your doings, use this command in following format:\n" +
-		"	Name Date Time Importance(from 1 to 4, from lower to higher)\n" +
-		"	Example: Task 8.02.2024 13:50 1\n" +
-		"/remind - reminds you about your doing, use this command like  a sort command\n" +
-		"/author - gets information about authors\n" +
-		"/delete - deletes doings from remind list,use this command like a sort command\n" +
-		"/list - gets all doings from remind list\n" +
-		"/done - you can use this command when you finished some doings, use this command like a sort command"
+	config.Text = model.English["HelpRespond"]
 }
 func StartRespond(config *tgbotapi.MessageConfig) {
 	config.Text = "Hello dear user! This bot sorts your doings, to get more info use command /help"
