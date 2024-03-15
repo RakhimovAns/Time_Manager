@@ -23,12 +23,25 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	offset := 0
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 	for {
-		respond.StatusRespond(BotURL)
-		respond.Remind(BotURL)
-		respond.Want(BotURL)
-		u := tgbotapi.NewUpdate(0)
+		go func() {
+			for {
+				respond.StatusRespond(BotURL)
+			}
+		}()
+		go func() {
+			for {
+				respond.Remind(BotURL)
+			}
+		}()
+		go func() {
+			for {
+				respond.Want(BotURL)
+			}
+		}()
+		u := tgbotapi.NewUpdate(offset)
 		updates := bot.GetUpdatesChan(u)
 		for update := range updates {
 			if update.Message == nil {
@@ -74,6 +87,8 @@ func main() {
 				respond.DoneRespond(data, &msg)
 				bot.Send(msg)
 			}
+			offset = update.UpdateID + 1
 		}
+		log.Println("end")
 	}
 }
