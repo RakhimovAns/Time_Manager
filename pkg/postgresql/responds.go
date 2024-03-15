@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"github.com/RakhimovAns/Time_Manager/model"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
 	"time"
@@ -193,10 +194,10 @@ func GetDoings() []model.Doing {
 	}
 	return doings
 }
-func AddDoings(doing model.Doing, botMessage *model.BotMessage) error {
+func AddDoings(doing model.Doing, botMessage *tgbotapi.MessageConfig) error {
 	_, err := pool.Exec(context.Background(), `
 			insert into doings(chat_id, name, importance, time) values ($1,$2,$3,$4)
-			`, botMessage.ChatId, doing.Name, doing.Importance, doing.Data)
+			`, botMessage.ChatID, doing.Name, doing.Importance, doing.Data)
 	if err != nil {
 		return err
 	}
