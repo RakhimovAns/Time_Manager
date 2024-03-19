@@ -15,20 +15,30 @@ import (
 	"time"
 )
 
-func SetLanguage(data []string, botMessage *model.BotMessage) {
-	language := data[1]
+func SetLanguage(language string, config *tgbotapi.MessageConfig) {
 	fmt.Println(language)
 	if language != "English" && language != "Russian" {
-		botMessage.Text = "invalid language"
+		config.Text = "invalid language"
 		return
 	}
-	postgresql.SetLanguage(botMessage.ChatId, language)
-	botMessage.Text = "Was set successfully"
+	postgresql.SetLanguage(config.ChatID, language)
+	config.Text = "Was set successfully"
 }
 func HelpRespond(config *tgbotapi.MessageConfig) {
 	config.Text = model.English["HelpRespond"]
 }
 func StartRespond(config *tgbotapi.MessageConfig) {
+	err := postgresql.GetLanguageStatus(config.ChatID)
+	if err != nil {
+		inlineBtn := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("ENGLISH", "ENG"),
+				tgbotapi.NewInlineKeyboardButtonData("Русский", "RUS"),
+			),
+		)
+		config.ReplyMarkup = inlineBtn
+		config.Text = ""
+	}
 	config.Text = "Hello dear user! This bot sorts your doings, to get more info use command /help"
 }
 func InfoRespond(config *tgbotapi.MessageConfig) {
