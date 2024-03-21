@@ -59,7 +59,6 @@ func main() {
 				}
 			}
 			if update.Message != nil {
-
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 				if update.Message.IsCommand() {
 					if update.Message.Command() == "help" {
@@ -103,6 +102,5 @@ func main() {
 				offset = update.UpdateID + 1
 			}
 		}
-
 	}
 }

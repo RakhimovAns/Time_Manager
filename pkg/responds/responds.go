@@ -22,10 +22,19 @@ func SetLanguage(language string, config *tgbotapi.MessageConfig) {
 		return
 	}
 	postgresql.SetLanguage(config.ChatID, language)
-	config.Text = "Was set successfully"
+	text := "Was set successfully"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	config.Text = text
 }
 func HelpRespond(config *tgbotapi.MessageConfig) {
-	config.Text = model.English["HelpRespond"]
+	language := postgresql.GetLanguage(config.ChatID)
+	text := "Hello, this bot can sort your doings and remind about them\n" + "You can use this following commands\n" + "/info - gets information about sorting methods\n" + "/sort - sorts your doings, use this command in following format:\n" + "Name Date Time Importance(from 1 to 4, from lower to higher)\n" + "Example: Task 8.02.2024 13:50 1\n" + "/remind - reminds you about your doing, use this command like  a sort command\n" + "/author - gets information about authors\n" + "/delete - deletes doings from remind list,use this command like a sort command\n" + "/list - gets all doings from remind list\n" + "/done - you can use this command when you finished some doings, use this command like a sort command\n"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	config.Text = text
 }
 func StartRespond(config *tgbotapi.MessageConfig) {
 	err := postgresql.GetLanguageStatus(config.ChatID)
@@ -38,11 +47,22 @@ func StartRespond(config *tgbotapi.MessageConfig) {
 		)
 		config.ReplyMarkup = inlineBtn
 		config.Text = ""
+		return
 	}
-	config.Text = "Hello dear user! This bot sorts your doings, to get more info use command /help"
+	language := postgresql.GetLanguage(config.ChatID)
+	text := "Hello dear user! This bot sorts your doings, to get more info use command /help"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	config.Text = text
 }
 func InfoRespond(config *tgbotapi.MessageConfig) {
-	config.Text = "This bot sorts your doing by ABCDE method.\n" + "ABCDE method is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance  using a special table"
+	language := postgresql.GetLanguage(config.ChatID)
+	text := "This bot sorts your doing by ABCDE method.\n" + "ABCDE method is the one of the most popular sorting methods of doing.The essence of the technique is to sort tasks by importance  using a special table"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	config.Text = text
 }
 
 func DoneRespond(data []string, botMessage *tgbotapi.MessageConfig) {
@@ -53,7 +73,12 @@ func DoneRespond(data []string, botMessage *tgbotapi.MessageConfig) {
 	for _, doing := range Doings {
 		postgresql.SetStatus(doing)
 	}
-	botMessage.Text = "Command finished successfully"
+	language := postgresql.GetLanguage(botMessage.ChatID)
+	text := "Command finished successfully"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	botMessage.Text = text
 }
 
 func StatusRespond(botURL string) {
@@ -66,7 +91,12 @@ func StatusRespond(botURL string) {
 		if time.Now().Add(3*time.Hour).Sub(timer).Hours() == 1 {
 			var botMessage model.BotMessage
 			botMessage.ChatId = chat_id
-			botMessage.Text = "Have you done anything from your doing list?"
+			language := postgresql.GetLanguage(chat_id)
+			text := "Have you done anything from your doing list?"
+			if language == "Russian" {
+				text = parser.Translate(text)
+			}
+			botMessage.Text = text
 			buf, err := json.Marshal(botMessage)
 			if err != nil {
 				log.Fatal(err)
@@ -79,11 +109,20 @@ func StatusRespond(botURL string) {
 	}
 }
 func AuthorRespond(config *tgbotapi.MessageConfig) {
-	config.Text = "Ansar Rakhmimov. support: @Rakhimov_Ans"
+	language := postgresql.GetLanguage(config.ChatID)
+	text := "Ansar Rakhmimov. support: @Rakhimov_Ans"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	config.Text = text
 }
 
 func ErrorRespond(config *tgbotapi.MessageConfig) {
 	config.Text = "unrecognized command, use /help to get list of commands"
+	language := postgresql.GetLanguage(config.ChatID)
+	if language == "Russian" {
+		config.Text = parser.Translate(config.Text)
+	}
 }
 
 func SortRespond(data []string, botMessage *tgbotapi.MessageConfig) {
@@ -120,7 +159,12 @@ func RemindRespond(data []string, botMessage *tgbotapi.MessageConfig) {
 		if err != nil {
 			log.Fatal("problem with adding to db")
 		}
-		botMessage.Text = "I will remind about that"
+		language := postgresql.GetLanguage(botMessage.ChatID)
+		text := "I will remind about that"
+		if language == "Russian" {
+			text = parser.Translate(text)
+		}
+		botMessage.Text = text
 	}
 }
 
@@ -131,7 +175,12 @@ func Remind(botURL string) {
 		BotMessage.ChatId = doing.ChatId
 		if doing.Data.Sub(time.Now().Add(3*time.Hour)) <= 0 {
 			postgresql.SetStatus(doing)
-			BotMessage.Text = "You need to start '" + doing.Name + "'"
+			language := postgresql.GetLanguage(BotMessage.ChatId)
+			text := "You need to start '"
+			if language == "Russian" {
+				text = parser.Translate(text)
+			}
+			BotMessage.Text = text + doing.Name + "'"
 			buf, err := json.Marshal(BotMessage)
 			if err != nil {
 				log.Fatal(err)
@@ -144,10 +193,15 @@ func Remind(botURL string) {
 	}
 }
 
-func ListRespond(botMessage *tgbotapi.MessageConfig) {
-	Doings := postgresql.GetDoingsByID(botMessage.ChatID)
+func ListRespond(config *tgbotapi.MessageConfig) {
+	Doings := postgresql.GetDoingsByID(config.ChatID)
 	if len(Doings) == 0 {
-		botMessage.Text = "You have no doings"
+		language := postgresql.GetLanguage(config.ChatID)
+		text := "You have no doings"
+		if language == "Russian" {
+			text = parser.Translate(text)
+		}
+		config.Text = text
 		return
 	}
 	var answer string
@@ -160,7 +214,7 @@ func ListRespond(botMessage *tgbotapi.MessageConfig) {
 	for _, item := range Doings {
 		answer += item.Name + " " + item.Data.Format("2.01.2006 15:04") + " " + strconv.Itoa(item.Importance) + "\n"
 	}
-	botMessage.Text = answer
+	config.Text = answer
 }
 
 func DeleteRespond(data []string, botMessage *tgbotapi.MessageConfig) {
@@ -174,11 +228,16 @@ func DeleteRespond(data []string, botMessage *tgbotapi.MessageConfig) {
 			log.Fatal("problem to delete")
 		}
 	}
-	botMessage.Text = "Was deleted successfully"
+	language := postgresql.GetLanguage(botMessage.ChatID)
+	text := "Was deleted successfully"
+	if language == "Russian" {
+		text = parser.Translate(text)
+	}
+	botMessage.Text = text
 }
 
 func Want(botURL string) {
-	if !(time.Now().Hour() == 23 && time.Now().Minute() == 14) {
+	if !(time.Now().Hour() == 22 && time.Now().Minute() == 30) {
 		return
 	}
 	Doings := postgresql.GetAllDoings()
@@ -203,6 +262,10 @@ func Want(botURL string) {
 			botMessage.Text = "Not Bad, today you have done " + strconv.Itoa(count) + " doings, try better"
 		} else {
 			botMessage.Text = "Great, today you have done " + strconv.Itoa(count) + " doings, Keep it"
+		}
+		language := postgresql.GetLanguage(botMessage.ChatId)
+		if language == "Russian" {
+			botMessage.Text = parser.Translate(botMessage.Text)
 		}
 		buf, _ := json.Marshal(botMessage)
 		_, err := http.Post(botURL+"/sendMessage", "application/json", bytes.NewBuffer(buf))

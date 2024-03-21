@@ -120,7 +120,14 @@ func GetLanguageStatus(ChatID int64) error {
 	}
 	return nil
 }
+func GetLanguage(ChatID int64) string {
+	query := "SELECT language FROM languages WHERE chat_id = $1"
+	row := pool.QueryRow(context.Background(), query, ChatID)
 
+	var languageFromDB string
+	_ = row.Scan(&languageFromDB)
+	return languageFromDB
+}
 func Delete(doing model.Doing) error {
 	_, err := pool.Exec(context.Background(), `
 		DELETE FROM doings where name=$1 and time=$2 and importance=$3

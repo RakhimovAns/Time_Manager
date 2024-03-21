@@ -3,6 +3,7 @@ package parser
 import (
 	"errors"
 	"github.com/RakhimovAns/Time_Manager/model"
+	"github.com/RakhimovAns/Time_Manager/pkg/postgresql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strconv"
 	"strings"
@@ -17,7 +18,11 @@ func Parse(data []string, botMessage *tgbotapi.MessageConfig) ([]model.Doing, er
 
 		SplitedData := strings.Fields(doing)
 		if len(SplitedData) != 4 {
-			botMessage.Text = "invalid type of doing"
+			language := postgresql.GetLanguage(botMessage.ChatID)
+			botMessage.Text = "invalid type of doing, use command /help to get more information"
+			if language == "Russian" {
+				botMessage.Text = Translate(botMessage.Text)
+			}
 			return nil, errors.New("invalid type of doing")
 		}
 
@@ -29,7 +34,11 @@ func Parse(data []string, botMessage *tgbotapi.MessageConfig) ([]model.Doing, er
 
 		dateTime, err := time.Parse(layout, DateTimeStr)
 		if err != nil {
-			botMessage.Text = "invalid type of doing"
+			language := postgresql.GetLanguage(botMessage.ChatID)
+			botMessage.Text = "invalid type of doing, use command /help to get more information"
+			if language == "Russian" {
+				botMessage.Text = Translate(botMessage.Text)
+			}
 			return nil, errors.New("invalid type of doing")
 		}
 
