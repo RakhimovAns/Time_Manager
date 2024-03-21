@@ -46,15 +46,15 @@ func StartRespond(config *tgbotapi.MessageConfig) {
 			),
 		)
 		config.ReplyMarkup = inlineBtn
-		config.Text = ""
-		return
+		config.Text = "Choose your language"
+	} else {
+		language := postgresql.GetLanguage(config.ChatID)
+		text := "Hello dear user! This bot sorts your doings, to get more info use command /help"
+		if language == "Russian" {
+			text = parser.Translate(text)
+		}
+		config.Text = text
 	}
-	language := postgresql.GetLanguage(config.ChatID)
-	text := "Hello dear user! This bot sorts your doings, to get more info use command /help"
-	if language == "Russian" {
-		text = parser.Translate(text)
-	}
-	config.Text = text
 }
 func InfoRespond(config *tgbotapi.MessageConfig) {
 	language := postgresql.GetLanguage(config.ChatID)
