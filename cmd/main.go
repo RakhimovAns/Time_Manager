@@ -12,7 +12,7 @@ const (
 	BotToken = "6791006120:AAFzk656CBCPbNlWVolFZl1cUwp4ej7A-Tc"
 	BotAPI   = "https://api.telegram.org/bot"
 	BotURL   = BotAPI + BotToken
-	DSN      = "postgresql://postgres:postgres@localhost:5432/manager"
+	DSN      = "postgresql://postgres:postgres@localhost:5433/postgres"
 )
 
 func main() {
